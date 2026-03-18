@@ -29,21 +29,21 @@ export class ScatteredLayer extends Component {
 
     private createCandy(x: number, y: number, isGreen: boolean) {
         const node = new Node('candy');
+        node.layer = this.node.layer;
         this.node.addChild(node);
         node.setPosition(new Vec3(x, y, 0));
 
-        const ui = node.addComponent(UITransform);
-        ui.setContentSize(this.radius * 2, this.radius * 2);
+        node.addComponent(UITransform).setContentSize(this.radius * 2, this.radius * 2);
 
-        // Draw colored circle
         const g = node.addComponent(Graphics);
-        g.fillColor = isGreen
-            ? new Color(72, 199, 89, 255)
-            : new Color(255, 213, 0, 255);
+        const color = isGreen ? new Color(72, 199, 89, 255) : new Color(255, 213, 0, 255);
+
+        // filled circle
+        g.fillColor = color;
         g.circle(0, 0, this.radius);
         g.fill();
 
-        // Thin white border
+        // white border
         g.strokeColor = new Color(255, 255, 255, 120);
         g.lineWidth = 1.5;
         g.circle(0, 0, this.radius);
@@ -51,6 +51,7 @@ export class ScatteredLayer extends Component {
 
         // 'm' label
         const labelNode = new Node('lbl');
+        labelNode.layer = this.node.layer;
         node.addChild(labelNode);
         labelNode.addComponent(UITransform);
         const label = labelNode.addComponent(Label);
