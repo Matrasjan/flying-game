@@ -18,11 +18,14 @@ export class ScatteredLayer extends Component {
         const scene = director.getScene();
         const canvas = scene.getComponentInChildren(Canvas);
         const { width, height } = canvas.getComponent(UITransform).contentSize;
+        const rx = width / 2 - this.radius - 10;
+        const ry = height / 2 - this.radius - 10;
 
         for (let i = 0; i < this.count; i++) {
+            const angle = (i / this.count) * Math.PI * 2;
+            const x = Math.cos(angle) * rx;
+            const y = Math.sin(angle) * ry;
             const isGreen = Math.random() < 0.1;
-            const x = Math.random() * width - width / 2;
-            const y = Math.random() * height - height / 2;
             this.createCandy(x, y, isGreen);
         }
     }
