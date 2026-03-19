@@ -1,18 +1,59 @@
-import { _decorator, Component, Vec3, tween, Node, director, Canvas, ParticleSystem2D } from 'cc';
+import { _decorator, Component, Vec3, tween, Node, director, Canvas,
+         ParticleSystem2D, Label, UITransform, Material, EffectAsset,
+         assetManager, Color } from 'cc';
 const { ccclass } = _decorator;
+
+// UUID of label-gradient.effect (see assets/Effects/label-gradient.effect.meta)
+const GRADIENT_EFFECT_UUID = 'e0000003-ef00-4000-8000-000000000001';
 
 @ccclass('MMController')
 export class MMController extends Component {
 
     private arcUp = true;
+    private _gradientEffect: EffectAsset | null = null;
 
     start() {
+        this.setupSmoke();
         this.flyToNext();
+        // Preload early so the effect is cached by the time the game ends
+        assetManager.loadAny(GRADIENT_EFFECT_UUID, (err, asset) => {
+            if (!err && asset) this._gradientEffect = asset as EffectAsset;
+        });
     }
 
+    // ─── Smoke ───────────────────────────────────────────────────────────────
+
+    private setupSmoke() {
+        const ps = this.node.getChildByName('Smoke')?.getComponent(ParticleSystem2D);
+        if (!ps) return;
+
+        ps.emissionRate    = 20;
+        ps.life            = 1.8;
+        ps.lifeVar         = 0.5;
+        ps.angle           = 95;
+        ps.angleVar        = 40;
+        ps.startSize       = 8;
+        ps.startSizeVar    = 4;
+        ps.endSize         = 32;
+        ps.endSizeVar      = 8;
+        ps.speed           = 50;
+        ps.speedVar        = 15;
+        ps.tangentialAccel = 10;
+        ps.totalParticles  = 80;
+
+        ps.startColor    = new Color(80,  80,  90,  200);
+        ps.startColorVar = new Color(20,  20,  20,   40);
+        ps.endColor      = new Color(180, 180, 190,   0);
+        ps.endColorVar   = new Color(10,  10,  10,    0);
+
+        ps.custom = true;
+        ps.resetSystem();
+    }
+
+    // ─── Candy hunting ───────────────────────────────────────────────────────
+
     private getCandies(): Node[] {
-        const scene = director.getScene();
-        const canvas = scene.getComponentInChildren(Canvas).node;
+        const canvas = director.getScene().getComponentInChildren(Canvas).node;
         const layer = canvas.getChildByName('ScatteredLayer');
         if (!layer) return [];
         return layer.children.filter(n => n.name === 'candy');
@@ -20,7 +61,7 @@ export class MMController extends Component {
 
     private findNearest(candies: Node[]): Node {
         const pos = this.node.worldPosition;
-        let nearest: Node = candies[0];
+        let nearest = candies[0];
         let minDist = Infinity;
         for (const c of candies) {
             const d = Vec3.distance(pos, c.worldPosition);
@@ -31,17 +72,11 @@ export class MMController extends Component {
 
     private flyToNext() {
         const candies = this.getCandies();
+        if (!candies.length) { this.flyToCenter(); return; }
 
-        if (!candies.length) {
-            this.flyToCenter();
-            return;
-        }
-
-        const target = this.findNearest(candies);
-        const start = this.node.position.clone();
-        // ScatteredLayer is at canvas origin with scale 1, so target.position = canvas-local coords
-        const end = target.position.clone();
-
+        const target  = this.findNearest(candies);
+        const start   = this.node.position.clone();
+        const end     = target.position.clone();
         const control = new Vec3(
             (start.x + end.x) / 2,
             (start.y + end.y) / 2 + (this.arcUp ? 180 : -180),
@@ -49,24 +84,49 @@ export class MMController extends Component {
         );
         this.arcUp = !this.arcUp;
 
-        const dist = Vec3.distance(start, end);
-        const duration = Math.max(0.7, dist / 450);
-
+        const duration = Math.max(0.7, Vec3.distance(start, end) / 450);
         this.moveBezier(start, control, end, duration, () => {
             if (target.isValid) target.destroy();
             this.flyToNext();
         });
     }
 
+    // ─── End game ────────────────────────────────────────────────────────────
+
     private flyToCenter() {
-        const start = this.node.position.clone();
-        const end = new Vec3(0, 0, 0);
+        const start   = this.node.position.clone();
+        const end     = new Vec3(0, 0, 0);
         const control = new Vec3(start.x / 2, (start.y + end.y) / 2 + 100, 0);
         this.moveBezier(start, control, end, 1.5, () => {
-            const smoke = this.node.getChildByName('Smoke');
-            smoke?.getComponent(ParticleSystem2D)?.stopSystem();
+            this.node.getChildByName('Smoke')?.getComponent(ParticleSystem2D)?.stopSystem();
+            this.showGameOver();
         });
     }
+
+    private showGameOver() {
+        const labelNode = new Node('GameOver');
+        labelNode.layer = this.node.layer;
+        this.node.parent.addChild(labelNode);
+        labelNode.setPosition(0, 90, 0);
+
+        labelNode.addComponent(UITransform).setContentSize(500, 80);
+
+        const label = labelNode.addComponent(Label);
+        label.string          = 'Game Over!';
+        label.fontSize        = 52;
+        label.isBold          = true;
+        label.horizontalAlign = Label.HorizontalAlign.CENTER;
+        label.verticalAlign   = Label.VerticalAlign.CENTER;
+        label.overflow        = Label.Overflow.SHRINK;
+
+        if (this._gradientEffect) {
+            const mat = new Material();
+            mat.initialize({ effectAsset: this._gradientEffect });
+            label.customMaterial = mat;
+        }
+    }
+
+    // ─── Bezier ──────────────────────────────────────────────────────────────
 
     private moveBezier(p0: Vec3, p1: Vec3, p2: Vec3, duration: number, callback?: Function) {
         const t = { value: 0 };
@@ -74,9 +134,11 @@ export class MMController extends Component {
             .to(duration, { value: 1 }, {
                 onUpdate: () => {
                     const u = 1 - t.value;
-                    const x = u * u * p0.x + 2 * u * t.value * p1.x + t.value * t.value * p2.x;
-                    const y = u * u * p0.y + 2 * u * t.value * p1.y + t.value * t.value * p2.y;
-                    this.node.setPosition(new Vec3(x, y, 0));
+                    this.node.setPosition(new Vec3(
+                        u*u*p0.x + 2*u*t.value*p1.x + t.value*t.value*p2.x,
+                        u*u*p0.y + 2*u*t.value*p1.y + t.value*t.value*p2.y,
+                        0
+                    ));
                 }
             })
             .call(() => callback?.())
