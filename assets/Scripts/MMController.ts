@@ -1,9 +1,8 @@
 import { _decorator, Component, Vec3, tween, Node, director, Canvas,
          ParticleSystem2D, Label, UITransform, Material, EffectAsset,
-         assetManager, Color } from 'cc';
+         assetManager} from 'cc';
 const { ccclass } = _decorator;
 
-// UUID of label-gradient.effect (see assets/Effects/label-gradient.effect.meta)
 const GRADIENT_EFFECT_UUID = 'e0000003-ef00-4000-8000-000000000001';
 
 @ccclass('MMController')
@@ -13,44 +12,11 @@ export class MMController extends Component {
     private _gradientEffect: EffectAsset | null = null;
 
     start() {
-        this.setupSmoke();
         this.flyToNext();
-        // Preload early so the effect is cached by the time the game ends
         assetManager.loadAny(GRADIENT_EFFECT_UUID, (err, asset) => {
             if (!err && asset) this._gradientEffect = asset as EffectAsset;
         });
     }
-
-    // ─── Smoke ───────────────────────────────────────────────────────────────
-
-    private setupSmoke() {
-        const ps = this.node.getChildByName('Smoke')?.getComponent(ParticleSystem2D);
-        if (!ps) return;
-
-        ps.emissionRate    = 20;
-        ps.life            = 1.8;
-        ps.lifeVar         = 0.5;
-        ps.angle           = 95;
-        ps.angleVar        = 40;
-        ps.startSize       = 8;
-        ps.startSizeVar    = 4;
-        ps.endSize         = 32;
-        ps.endSizeVar      = 8;
-        ps.speed           = 50;
-        ps.speedVar        = 15;
-        ps.tangentialAccel = 10;
-        ps.totalParticles  = 80;
-
-        ps.startColor    = new Color(80,  80,  90,  200);
-        ps.startColorVar = new Color(20,  20,  20,   40);
-        ps.endColor      = new Color(180, 180, 190,   0);
-        ps.endColorVar   = new Color(10,  10,  10,    0);
-
-        ps.custom = true;
-        ps.resetSystem();
-    }
-
-    // ─── Candy hunting ───────────────────────────────────────────────────────
 
     private getCandies(): Node[] {
         const canvas = director.getScene().getComponentInChildren(Canvas).node;
@@ -91,8 +57,6 @@ export class MMController extends Component {
         });
     }
 
-    // ─── End game ────────────────────────────────────────────────────────────
-
     private flyToCenter() {
         const start   = this.node.position.clone();
         const end     = new Vec3(0, 0, 0);
@@ -125,8 +89,6 @@ export class MMController extends Component {
             label.customMaterial = mat;
         }
     }
-
-    // ─── Bezier ──────────────────────────────────────────────────────────────
 
     private moveBezier(p0: Vec3, p1: Vec3, p2: Vec3, duration: number, callback?: Function) {
         const t = { value: 0 };

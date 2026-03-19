@@ -25,12 +25,11 @@ export class ScatteredLayer extends Component {
             const angle = (i / this.count) * Math.PI * 2;
             const x = Math.cos(angle) * rx;
             const y = Math.sin(angle) * ry;
-            const isGreen = Math.random() < 0.1;
-            this.createCandy(x, y, isGreen);
+            this.createCandy(x, y);
         }
     }
 
-    private createCandy(x: number, y: number, isGreen: boolean) {
+    private createCandy(x: number, y: number) {
         const node = new Node('candy');
         node.layer = this.node.layer;
         this.node.addChild(node);
@@ -39,20 +38,13 @@ export class ScatteredLayer extends Component {
         node.addComponent(UITransform).setContentSize(this.radius * 2, this.radius * 2);
 
         const g = node.addComponent(Graphics);
-        const color = isGreen ? new Color(72, 199, 89, 255) : new Color(30, 100, 220, 255);
+        const color = new Color(30, 100, 220, 255);
 
-        // filled circle
         g.fillColor = color;
         g.circle(0, 0, this.radius);
         g.fill();
 
-        // white border
-        g.strokeColor = new Color(255, 255, 255, 120);
-        g.lineWidth = 1.5;
-        g.circle(0, 0, this.radius);
-        g.stroke();
 
-        // 'm' label
         const labelNode = new Node('lbl');
         labelNode.layer = this.node.layer;
         node.addChild(labelNode);
