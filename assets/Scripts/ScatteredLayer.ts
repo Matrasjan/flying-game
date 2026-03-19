@@ -39,7 +39,7 @@ export class ScatteredLayer extends Component {
         node.addComponent(UITransform).setContentSize(this.radius * 2, this.radius * 2);
 
         const g = node.addComponent(Graphics);
-        const color = isGreen ? new Color(72, 199, 89, 255) : new Color(255, 213, 0, 255);
+        const color = isGreen ? new Color(72, 199, 89, 255) : new Color(30, 100, 220, 255);
 
         // filled circle
         g.fillColor = color;

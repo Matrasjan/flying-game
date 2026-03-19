@@ -11,10 +11,10 @@ export class MMController extends Component {
     loopFlight() {
         const start = this.node.position.clone();
 
-        const right = new Vec3(start.x + 150, start.y, 0);
+        const right = new Vec3(start.x + 250, start.y, 0);
 
-        const upControl = new Vec3(start.x + 75, start.y + 120, 0);
-        const downControl = new Vec3(start.x + 75, start.y - 120, 0);
+        const upControl = new Vec3(start.x + 125, start.y + 160, 0);
+        const downControl = new Vec3(start.x + 125, start.y - 160, 0);
 
         this.moveBezier(start, upControl, right, () => {
 
