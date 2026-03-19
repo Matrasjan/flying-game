@@ -1,6 +1,5 @@
 import { _decorator, Component, Vec3, tween, Node, director, Canvas,
-         ParticleSystem2D, Label, UITransform, Material, EffectAsset,
-         assetManager} from 'cc';
+         Label, UITransform, Material, EffectAsset, assetManager } from 'cc';
 const { ccclass } = _decorator;
 
 const GRADIENT_EFFECT_UUID = 'e0000003-ef00-4000-8000-000000000001';
@@ -61,10 +60,7 @@ export class MMController extends Component {
         const start   = this.node.position.clone();
         const end     = new Vec3(0, 0, 0);
         const control = new Vec3(start.x / 2, (start.y + end.y) / 2 + 100, 0);
-        this.moveBezier(start, control, end, 1.5, () => {
-            this.node.getChildByName('Smoke')?.getComponent(ParticleSystem2D)?.stopSystem();
-            this.showGameOver();
-        });
+        this.moveBezier(start, control, end, 1.5, () => this.showGameOver());
     }
 
     private showGameOver() {
