@@ -1,5 +1,6 @@
 import { _decorator, Component, Vec3, tween, Node, director, Canvas,
-         Label, UITransform, Material, EffectAsset, assetManager } from 'cc';
+         Label, UITransform, Material, EffectAsset, assetManager,
+         Graphics, Color } from 'cc';
 const { ccclass } = _decorator;
 
 const GRADIENT_EFFECT_UUID = 'e0000003-ef00-4000-8000-000000000001';
@@ -11,11 +12,47 @@ export class MMController extends Component {
     private _gradientEffect: EffectAsset | null = null;
 
     start() {
+        this.schedule(this.spawnPuff, 0.08);
         this.flyToNext();
         assetManager.loadAny(GRADIENT_EFFECT_UUID, (err, asset) => {
             if (!err && asset) this._gradientEffect = asset as EffectAsset;
         });
     }
+
+    // ─── Smoke puffs ─────────────────────────────────────────────────────────
+
+    private spawnPuff = () => {
+        const pos = this.node.worldPosition.clone();
+
+        const puffNode = new Node('puff');
+        puffNode.layer = this.node.layer;
+        this.node.parent.addChild(puffNode);
+        puffNode.setWorldPosition(pos);
+
+        const size  = 6 + Math.random() * 10;
+        const grey  = Math.floor(130 + Math.random() * 80);
+        puffNode.addComponent(UITransform).setContentSize(size * 6, size * 6);
+        const g = puffNode.addComponent(Graphics);
+
+        const anim = { t: 0 };
+        tween(anim)
+            .to(0.9, { t: 1 }, {
+                onUpdate: () => {
+                    const alpha  = Math.round(180 * (1 - anim.t));
+                    const radius = size * (1 + anim.t * 2);
+                    const s      = 1 + anim.t * 1.5;
+                    puffNode.setScale(s, s, 1);
+                    g.clear();
+                    g.fillColor = new Color(grey, grey, grey, alpha);
+                    g.circle(0, 0, radius);
+                    g.fill();
+                }
+            })
+            .call(() => { if (puffNode.isValid) puffNode.destroy(); })
+            .start();
+    };
+
+    // ─── Candy hunting ───────────────────────────────────────────────────────
 
     private getCandies(): Node[] {
         const canvas = director.getScene().getComponentInChildren(Canvas).node;
@@ -56,11 +93,16 @@ export class MMController extends Component {
         });
     }
 
+    // ─── End game ────────────────────────────────────────────────────────────
+
     private flyToCenter() {
         const start   = this.node.position.clone();
         const end     = new Vec3(0, 0, 0);
         const control = new Vec3(start.x / 2, (start.y + end.y) / 2 + 100, 0);
-        this.moveBezier(start, control, end, 1.5, () => this.showGameOver());
+        this.moveBezier(start, control, end, 1.5, () => {
+            this.unschedule(this.spawnPuff);
+            this.showGameOver();
+        });
     }
 
     private showGameOver() {
@@ -85,6 +127,8 @@ export class MMController extends Component {
             label.customMaterial = mat;
         }
     }
+
+    // ─── Bezier ──────────────────────────────────────────────────────────────
 
     private moveBezier(p0: Vec3, p1: Vec3, p2: Vec3, duration: number, callback?: Function) {
         const t = { value: 0 };

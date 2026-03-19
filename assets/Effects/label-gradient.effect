@@ -1,0 +1,48 @@
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: gradient-vs:vert
+      frag: gradient-fs:frag
+      depthStencilState:
+        depthTest: false
+        depthWrite: false
+      blendState:
+        targets:
+        - blend: true
+          blendSrc: src_alpha
+          blendDst: one_minus_src_alpha
+      rasterizerState:
+        cullMode: none
+}%
+
+CCProgram gradient-vs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  out vec2 uv0;
+
+  vec4 vert () {
+    uv0 = a_texCoord;
+    return cc_matViewProj * vec4(a_position, 1.0);
+  }
+}%
+
+CCProgram gradient-fs %{
+  precision highp float;
+  in vec2 uv0;
+
+  #pragma builtin(local)
+  layout(set = 2, binding = 10) uniform sampler2D cc_spriteTexture;
+
+  vec4 frag () {
+    float alpha = texture(cc_spriteTexture, uv0).a;
+    // pink → cyan gradient left to right
+    vec3 colorA = vec3(1.0, 0.20, 0.55);
+    vec3 colorB = vec3(0.0, 0.85, 1.0);
+    vec3 col = mix(colorA, colorB, uv0.x);
+    return vec4(col, alpha);
+  }
+}%
